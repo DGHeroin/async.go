@@ -2,27 +2,31 @@ package async
 // MIT License
 // Blake@github.com/DGHeroin/async.go
 
-type F func(err error, args ...interface{})
-type FF func(cb F, args ...interface{})
-type FFs []FF
+type NextCallback func(err error, args ...interface{})
+type Callback func(cb NextCallback, args ...interface{})
 
-func Waterfall(fs FFs, result F) {
+func Waterfall(fs []Callback, result NextCallback) {
     var (
         next func(err error, args ...interface{})
+        v    Callback
     )
     next = func(err error, args ...interface{}) {
-        if len(fs)==0{
-            result(err, args)
+        if len(fs) == 0 {
+            if result != nil {
+                result(err, args)
+            }
             return
         }
         if err != nil {
-            result(err, args...)
+            if result != nil {
+                result(err, args...)
+            }
             return
         }
         err = nil
-        v := fs[0]
-        fs = fs[1:]
+        v, fs = fs[0], fs[1:]
         v(next, args...)
     }
     next(nil)
 }
+
